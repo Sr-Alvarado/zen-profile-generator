@@ -23,24 +23,74 @@ class ZenProfileGenerator:
         # Ruta base Flatpak definida en las especificaciones
         self.base_path = Path(os.path.expanduser("~/.var/app/app.zen_browser.zen/.zen"))
         self.profiles_ini_path = self.base_path / "profiles.ini"
-        
-        # Perfil origen "Hardcoded" según especificación (Power User)
-        self.source_dir_name = "pyfho2nz.Default (release)"
-        self.source_path = self.base_path / self.source_dir_name
 
         self._check_requirements()
+
+        # Seleccionar perfil origen desde menú
+        self.source_path = self._select_source_profile()
 
     def _check_requirements(self):
         """Verifica que existan las rutas y archivos base."""
         if not self.base_path.exists():
             print(f"{Colors.FAIL}Error: No se encontró la carpeta de Zen en: {self.base_path}{Colors.ENDC}")
             sys.exit(1)
-        if not self.source_path.exists():
-            print(f"{Colors.FAIL}Error: No se encontró el perfil origen: {self.source_dir_name}{Colors.ENDC}")
+        if not self.profiles_ini_path.exists():
+            print(f"{Colors.FAIL}Error: No se encontró profiles.ini en: {self.profiles_ini_path}{Colors.ENDC}")
             sys.exit(1)
-        
+
         print(f"{Colors.WARNING}⚠️  IMPORTANTE: Cierra Zen Browser completamente antes de continuar para evitar corrupción de archivos.{Colors.ENDC}")
         input(f"Presiona {Colors.BOLD}Enter{Colors.ENDC} cuando Zen esté cerrado...")
+
+    def _get_all_profiles(self):
+        """Lee profiles.ini y retorna una lista de todos los perfiles disponibles."""
+        config = configparser.ConfigParser()
+        config.read(self.profiles_ini_path)
+
+        profiles = []
+        for section in config.sections():
+            if section.startswith("Profile"):
+                name = config[section].get("Name", "Sin nombre")
+                path_relative = config[section].get("Path", "")
+                path_absolute = self.base_path / path_relative
+
+                if path_absolute.exists():
+                    profiles.append({
+                        'name': name,
+                        'path': path_absolute,
+                        'description': f"Ruta: {path_relative}"
+                    })
+
+        return profiles
+
+    def _select_source_profile(self):
+        """Muestra un menú para seleccionar el perfil origen."""
+        profiles = self._get_all_profiles()
+
+        if not profiles:
+            print(f"{Colors.FAIL}Error: No se encontraron perfiles disponibles.{Colors.ENDC}")
+            sys.exit(1)
+
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(f"{Colors.HEADER}=== Selecciona el perfil origen (base para clonar) ==={Colors.ENDC}")
+        print(f"{Colors.CYAN}Escribe el número del perfil que quieres usar como base.{Colors.ENDC}\n")
+
+        for idx, profile in enumerate(profiles):
+            print(f"[{idx + 1}] {Colors.BOLD}{profile['name']}{Colors.ENDC}")
+            print(f"    {Colors.BLUE}{profile['description']}{Colors.ENDC}\n")
+
+        while True:
+            selection = input(f"{Colors.GREEN}Selección > {Colors.ENDC}").strip()
+
+            try:
+                idx = int(selection) - 1
+                if 0 <= idx < len(profiles):
+                    selected = profiles[idx]
+                    print(f"\n{Colors.GREEN}✓ Perfil seleccionado: {selected['name']}{Colors.ENDC}\n")
+                    return selected['path']
+                else:
+                    print(f"{Colors.WARNING}Número fuera de rango. Intenta de nuevo.{Colors.ENDC}")
+            except ValueError:
+                print(f"{Colors.WARNING}Entrada inválida. Escribe un número.{Colors.ENDC}")
 
     def _get_new_profile_path(self, profile_name):
         """Lee profiles.ini para encontrar la ruta de la carpeta del nuevo perfil."""
