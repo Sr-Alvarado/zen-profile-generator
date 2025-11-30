@@ -1,7 +1,7 @@
 [project]
 name = "zen-profile-generator"
-version = "0.1.0"
-description = "Generador de perfiles para Zen Browser"
+version = "1.2"
+description = "Herramienta CLI (generada con vibecode) para clonar y configurar perfiles de Zen Browser con selección interactiva de mods, extensiones y contenedores"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
